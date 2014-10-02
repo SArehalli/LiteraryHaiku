@@ -4,7 +4,7 @@ import requests
 HAIKU = (5, 7, 5)
 
 # Open text data and remove commas
-with open("./text.txt") as f:
+with open("./cask.txt") as f:
     text = f.read().split()
     for word in text:
         if word[-1] in ( ",", "\""):
