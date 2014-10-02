@@ -1,6 +1,8 @@
 import random
 import requests
 
+HAIKU = (5, 7, 5)
+
 # Open text data and remove commas
 with open("./text.txt") as f:
     text = f.read().split()
@@ -24,15 +26,36 @@ def generate_text(chain, syllables, current):
     else:
         choice = random.randint(0, len(chain[current]) - 1)
         out = chain[current][choice]
-    r = requests.post("http://rhymebrain.com/talk", {"function" : "getWordInfo",
-                                                         "word" : out })
+    try:
+        r = requests.post("http://rhymebrain.com/talk", {"function" : "getWordInfo",
+                                                             "word" : out })
+    except:
+        print("Error: Could Not connect to RhymeBrain API")
+        return None
     if syllables - int(r.json()['syllables']) > 0:
-        return out + " " +  generate_text(chain, syllables - int(r.json()['syllables']), out) 
+        next_word = None 
+        tries = 0
+        while next_word is None and tries < 5:
+            next_word = generate_text(chain, syllables - int(r.json()['syllables']), out)
+            tries += 1 
+        if next_word is None:
+            return None
+        return out + " " + next_word
+             
+    if syllables - int(r.json()['syllables']) < 0:
+        return None
     else:
         return out
-line = []
-line.append(generate_text(chain, 5, "I"))
-line.append(generate_text(chain, 7, line[-1].split()[-1]))
-line.append(generate_text(chain, 5, line[-1].split()[-1]))
-for thing in line:
-    print(thing)
+
+# Choose generator word. This is not printed 
+poem = [text[random.randint(0, len(text))]]
+
+# Write the Haiku using generate_text() 
+for syl in HAIKU:
+    line = None
+    while line is None:
+        line = generate_text(chain, syl, poem[-1].split()[-1])
+    poem.append(line)
+# Print the Completed Haiku
+for line in poem[1:]:
+    print(line.capitalize())
