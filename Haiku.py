@@ -1,8 +1,13 @@
 import requests
 import random
+import nltk
+from nltk.corpus import cmudict
+import re 
+import itertools
 
 HAIKU = (5, 7, 5)
 HTML_HEADER = "html_header.html"
+SYLL_DICT = cmudict.dict()
 
 def generate_text(chain, syllables, current):
     
@@ -15,23 +20,25 @@ def generate_text(chain, syllables, current):
         choice = random.randint(0, len(chain[current]) - 1)
         out = chain[current][choice]
     
-    # Get the syllable count of the chosen word (out) through Rhymebrain. NOTE: Find a better way to do this. NLTK? 
-    try:
-        r = requests.post("http://rhymebrain.com/talk", {"function" : "getWordInfo",
-                                                             "word" : out })
-    # Or exit because you can't connect
-    except:
-        return "Error: Could Not connect to RhymeBrain API"
-    
+    # Count syllables with nltk
+    currentSyllables = 0
+    if out in SYLL_DICT:
+        # Use the CMU dict's syllable count if possible
+        currentSyllables = len([x for x in SYLL_DICT[out][0] if re.match("\d",x[-1])])
+    else:
+        # Or use this BS syllable ocunt method.
+        currentSyllables = len(re.findall(r"[aeiou]+", out))
+
+
     # If there are more syllables remaining
-    if syllables - int(r.json()['syllables']) > 0:
+    if syllables - currentSyllables > 0:
         
         next_word = None 
         tries = 0
         
         # Try 5 times to get a next word that doesn't exceed the syllable count recursively
         while next_word is None and tries < 5:
-            next_word = generate_text(chain, syllables - int(r.json()['syllables']), out)
+            next_word = generate_text(chain, syllables - currentSyllables, out)
             tries += 1 
         
         # If that doesn't work, go back one step recursively and try that while loop.
@@ -39,10 +46,10 @@ def generate_text(chain, syllables, current):
             return None
 
         # If everything did work, return and recurse back
-        return out + " " + next_word
+        return out + " " +  next_word
     
     # If there are too many syllables, return None and recurse back. See previous code block for that mechanism
-    if syllables - int(r.json()['syllables']) < 0:
+    if syllables - currentSyllables < 0:
         return None
     
     # If all is well, return
@@ -52,11 +59,7 @@ def generate_text(chain, syllables, current):
 def haiku(text_file):
    # Open text data and remove commas
     with open(text_file) as f:
-        text = f.read().split()
-        text = [a.strip("\"") for a in text]
-        for word in text:
-            if word[-1] in ( ",", "\""):
-                word = word[:-1]
+        text = re.findall(r"[\w']+", f.read())
 
     # Create the Markov Chain
     chain = {}
