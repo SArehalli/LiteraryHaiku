@@ -2,7 +2,7 @@ import requests
 import random
 
 HAIKU = (5, 7, 5)
-HTML_HEADER = "../html_header.html"
+HTML_HEADER = "html_header.html"
 
 def generate_text(chain, syllables, current):
     
