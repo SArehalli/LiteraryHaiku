@@ -1,3 +1,4 @@
+from flask import render_template
 import requests
 import random
 import nltk
@@ -6,7 +7,6 @@ import re
 import itertools
 
 HAIKU = (5, 7, 5)
-HTML_HEADER = "html_header.html"
 SYLL_DICT = cmudict.dict()
 
 def generate_text(chain, syllables, current):
@@ -26,8 +26,10 @@ def generate_text(chain, syllables, current):
         # Use the CMU dict's syllable count if possible
         currentSyllables = len([x for x in SYLL_DICT[out][0] if re.match("\d",x[-1])])
     else:
-        # Or use this BS syllable ocunt method.
+        # Or use this BS syllable count method.
         currentSyllables = len(re.findall(r"[aeiou]+", out))
+    if currentSyllables == 0:
+        currentSyllables = 1
 
 
     # If there are more syllables remaining
@@ -80,10 +82,9 @@ def haiku(text_file):
         poem.append(line)
     
     # Print the Completed Haiku
-    html = open(HTML_HEADER)
-    output = html.read() + "<div class='haiku'>"
+    output = ""
     for line in poem[1:]:
         output += line.capitalize() + "<br>"
-    return output + "</div></div></body></html>"
+    return render_template('HaikuTemplate.html', output=output) 
 
 
